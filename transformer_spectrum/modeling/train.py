@@ -20,7 +20,7 @@ from transformer_spectrum.modeling.loss_functions import CauchyLoss, SGTLoss
 from transformer_spectrum.modeling.models import LSTM, TransformerWithPE
 from transformer_spectrum.modeling.trainer import Trainer
 from transformer_spectrum.modeling.utils import set_seed
-from transformer_spectrum.modeling.visualize import log_sample_images, plot_singular_values
+from transformer_spectrum.modeling.visualize import log_sample_images
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
@@ -51,7 +51,7 @@ def main(
         num_layers: int = 4,
         batch_size: int = 32,
         num_epochs: int = 100,
-        learning_rate: float = 1e-4,
+        learning_rate: float = 1e-3,
         test_split: float = 0.1,
         seed: int = SEED,
         early_stopping_patience: int = 20,
@@ -158,15 +158,15 @@ def main(
             num_epochs=num_epochs,
             early_stopping_patience=early_stopping_patience,
         )
-        best_val_loss, best_train_metrics, best_val_metrics, best_spectral_metrics, best_weights = trainer.train()
-        plot_singular_values(best_weights, output_dir / 'singular_values')
+        best_val_loss, best_train_metrics, best_val_metrics, best_spectral_metrics = trainer.train()
+        # plot_singular_values(best_weights, output_dir / 'singular_values')
 
         mlflow.log_metrics({
             'best_train_smape': best_train_metrics.get('smape'),
             'best_val_smape': best_val_metrics.get('smape'),
         })
         for key, value in best_spectral_metrics.items():
-            mlflow.log_metric(f'best_{key}', value)
+            mlflow.log_metric(f'best_{key}', float(value))
 
         log_sample_images(model, val_loader, model_path=model_save_path)
 

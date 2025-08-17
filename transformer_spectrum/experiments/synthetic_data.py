@@ -23,7 +23,12 @@ def main(n_runs: int = N_RUNS):
 
         typer.echo(f'==== Generating dataset with lam={lam}, q={q}, sigma={sigma} ====')
 
-        generate_data_main(lam=lam, q=q, sigma=sigma)
+        if 'kernel_size' in ds_config:
+            kernel_size = ds_config['kernel_size']
+            typer.echo(f'Using kernel size: {kernel_size}')
+            generate_data_main(lam=lam, q=q, sigma=sigma, kernel_size=kernel_size)
+        else:
+            generate_data_main(lam=lam, q=q, sigma=sigma)
 
         typer.echo('Dataset generation complete.\n')
 
@@ -32,7 +37,7 @@ def main(n_runs: int = N_RUNS):
 
             for run_idx in range(1, n_runs + 1):
                 experiment_seed = random.randint(0, 2**32 - 1)
-                experiment_name = f'{base_experiment_name}_run_{run_idx}'
+                experiment_name = f'new_metrics_add_{base_experiment_name}_run_{run_idx}'
 
                 typer.echo(f'==== Starting training: {experiment_name} with loss_type={loss_type}, seed={experiment_seed} ====')
 

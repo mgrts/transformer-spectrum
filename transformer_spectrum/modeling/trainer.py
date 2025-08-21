@@ -1,3 +1,4 @@
+import json
 import mlflow
 import numpy as np
 import torch
@@ -105,7 +106,7 @@ class Trainer:
         num_epochs,
         early_stopping_patience,
         device: str = "cuda",
-        esd_plot_epochs: tuple | list = (1, 10, 50),
+        track_epochs: tuple | list = (0, 1, 10, 50),
     ):
         self.model = model.to(device)
         self.train_loader = train_loader
@@ -118,7 +119,8 @@ class Trainer:
         self.early_stopper = EarlyStopping(patience=early_stopping_patience)
         self.device = device
 
-        self.esd_plot_epochs = set(int(e) for e in esd_plot_epochs)
+        self.track_epochs = set(track_epochs) if isinstance(track_epochs, (tuple, list)) else {track_epochs}
+        self.esd_plot_epochs = set(int(e) for e in track_epochs)
 
         self.best_val_loss = float("inf")
         self.best_train_metrics: dict = {}
@@ -131,13 +133,14 @@ class Trainer:
         self._dec = ("transformer.decoder.layers", "multihead_attn.in_proj_weight", "decoder")
 
     def train(self):
-        self.model.eval()
-        with torch.no_grad():
-            self._log_qkv_figs(*self._enc, epoch=0)
-            self._log_qkv_figs(*self._dec, epoch=0)
-            base_enc = self._log_qkv_metrics(*self._enc, epoch=0)
-            base_dec = self._log_qkv_metrics(*self._dec, epoch=0)
-            logger.info(f"Baseline metrics logged: encoder={len(base_enc)}, decoder={len(base_dec)}")
+        if 0 in self.track_epochs:
+            self.model.eval()
+            with torch.no_grad():
+                self._log_qkv_figs(*self._enc, epoch=0)
+                self._log_qkv_figs(*self._dec, epoch=0)
+                base_enc = self._log_qkv_metrics(*self._enc, epoch=0)
+                base_dec = self._log_qkv_metrics(*self._dec, epoch=0)
+                logger.info(f"Baseline metrics logged: encoder={len(base_enc)}, decoder={len(base_dec)}")
 
         for epoch in range(1, self.num_epochs + 1):
             train_loss = self._run_epoch(self.train_loader, train=True)
@@ -179,7 +182,6 @@ class Trainer:
                 mlflow.log_artifact(self.model_save_path)
                 logger.info(f"Saved best model to {self.model_save_path} (val={val_loss:.4f})")
 
-                # plot singular values for the best model weights (per-layer Q/K/V)
                 self._plot_best_model_svals()
 
             if self.early_stopper.step(val_loss):
@@ -222,7 +224,6 @@ class Trainer:
         return m
 
     def _metrics_with_powerlaws(self, W: np.ndarray) -> dict[str, float]:
-        # get_spectral_metrics now already includes Hill and KS on the ESD
         m = get_spectral_metrics(W)
         return {k: (float(v) if np.isfinite(v) else float("nan")) for k, v in m.items()}
 
@@ -251,6 +252,7 @@ class Trainer:
 
     def _log_qkv_figs(self, prefix: str, tail: str, group: str, epoch: int) -> None:
         sd = self.model.state_dict()
+        dump_json_arrays = epoch in self.esd_plot_epochs  # only dump arrays for selected epochs
 
         for i in _iter_layer_idxs(sd, prefix, tail):
             W = _get_in_proj(sd, prefix, tail, i)
@@ -264,15 +266,39 @@ class Trainer:
                 continue
 
             for tag, M in (("q", Q), ("k", K), ("v", V)):
-                figs = _plot_esd_hist(M, title=f"{group} L{i} {tag}", bins=None)
+                title = f"epoch {epoch} | {group} L{i} {tag}"
+
+                # Plots
+                figs = _plot_esd_hist(M, title=title, bins=None)
                 for j, fig in enumerate(figs):
                     name = "linear" if j == 0 else "loglog"
                     mlflow.log_figure(fig, f"esd_{group}_L{i}_{tag}_epoch{epoch}_{name}.png")
                     plt.close(fig)
 
-                fig_sv = _plot_svals_inline(M, title=f"{group} L{i} {tag}")
+                fig_sv = _plot_svals_inline(M, title=title)
                 mlflow.log_figure(fig_sv, f"sv_{group}_L{i}_{tag}_epoch{epoch}.png")
                 plt.close(fig_sv)
+
+                if dump_json_arrays:
+                    singular_vals = _singular_values(M)
+                    singular_vals = singular_vals[np.isfinite(singular_vals) & (singular_vals >= 0)]
+                    singular_vals = np.sort(singular_vals)[::-1]
+
+                    lam = singular_vals * singular_vals  # ESD eigenvalues
+
+                    spectra_dir = self.out_dir / "spectra"
+                    spectra_dir.mkdir(parents=True, exist_ok=True)
+
+                    singular_vals_path = spectra_dir / f"singular_vals_{group}_L{i}_{tag}_epoch{epoch}.json"
+                    esd_path = spectra_dir / f"esd_vals_{group}_L{i}_{tag}_epoch{epoch}.json"
+
+                    with open(singular_vals_path, "w") as f:
+                        json.dump(singular_vals.tolist(), f)
+                    with open(esd_path, "w") as f:
+                        json.dump(lam.tolist(), f)
+
+                    mlflow.log_artifact(str(singular_vals_path))
+                    mlflow.log_artifact(str(esd_path))
 
     def _plot_best_model_svals(self) -> None:
         sd = self.model.state_dict()
@@ -289,7 +315,6 @@ class Trainer:
                     continue
 
                 for tag, M in (("q", Q), ("k", K), ("v", V)):
-                    # create a stable subdir per matrix
                     save_dir = self.out_dir / "best_svals" / f"{group}_L{i}_{tag}"
                     plot_singular_values(M, str(save_dir))
 

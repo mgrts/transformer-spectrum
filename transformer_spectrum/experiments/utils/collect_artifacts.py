@@ -93,7 +93,7 @@ def main(
         "-e",
         help="Experiment name(s). Pass multiple --experiment to collect several.",
     ),
-    n_runs: int = typer.Option(2, "--n-runs", "-n", help="If >0, expand names to <exp>_run_1..n"),
+    n_runs: int = typer.Option(5, "--n-runs", "-n", help="If >0, expand names to <exp>_run_1..n"),
 ):
     mlflow.set_tracking_uri(TRACKING_URI)
 

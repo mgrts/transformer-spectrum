@@ -19,7 +19,7 @@ def main(n_runs: int = N_RUNS):
 
         for run_idx in range(1, n_runs + 1):
             experiment_seed = random.randint(0, 2 ** 32 - 1)
-            experiment_name = f'{experiment_name_base}_run_upd_{run_idx}'
+            experiment_name = f'{experiment_name_base}_run_{run_idx}'
 
             typer.echo(f'Starting training with config: {training_config}, run: {run_idx}, seed: {experiment_seed}')
 

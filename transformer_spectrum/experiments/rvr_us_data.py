@@ -18,7 +18,7 @@ def main(n_runs: int = N_RUNS):
     ]
 
     training_configs = TRAINING_CONFIGS
-    dataset_path = PROCESSED_DATA_DIR / 'rvr_us_data.npy'
+    dataset_path = PROCESSED_DATA_DIR / 'rvr_us_dataset.npy'
 
     for time_series in time_series_list:
         if time_series == 'average_inpatient_beds_occupied':

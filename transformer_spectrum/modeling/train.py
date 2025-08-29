@@ -159,7 +159,6 @@ def main(
             early_stopping_patience=early_stopping_patience,
         )
         best_val_loss, best_train_metrics, best_val_metrics, best_spectral_metrics = trainer.train()
-        # plot_singular_values(best_weights, output_dir / 'singular_values')
 
         mlflow.log_metrics({
             'best_train_smape': best_train_metrics.get('smape'),

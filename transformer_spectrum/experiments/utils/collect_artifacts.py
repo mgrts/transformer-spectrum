@@ -7,11 +7,39 @@ import mlflow
 from mlflow.tracking import MlflowClient
 import typer
 from loguru import logger
+from typing import Iterable, Dict, Optional
 
-from transformer_spectrum.config import TRACKING_URI, SYNTHETIC_DATA_CONFIGS
+from transformer_spectrum.config import TRACKING_URI, SYNTHETIC_DATA_CONFIGS, TRACK_EPOCHS
 
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
+
+
+def _values_at_steps(
+    client: MlflowClient,
+    run_id: str,
+    metric_key: str,
+    steps: Iterable[int],
+) -> Dict[int, Optional[float]]:
+    """
+    Return metric values for the given steps (epochs). If a step is missing, value is None.
+    Requires metrics to have been logged with `step=epoch`.
+    """
+    wanted = set(int(s) for s in steps)
+    out: Dict[int, Optional[float]] = {s: None for s in wanted}
+
+    # get full metric history (each item has .value, .timestamp, .step)
+    # If you’re on a very old MLflow version with pagination limits,
+    # swap to `get_metric_history_paginated`.
+    history = client.get_metric_history(run_id, metric_key)
+
+    # keep the latest value for each step (in case logged multiple times)
+    for m in history:
+        s = int(getattr(m, "step", 0) or 0)
+        if s in wanted:
+            out[s] = m.value
+
+    return out
 
 
 def _safe_name(name: str) -> str:
@@ -140,6 +168,11 @@ def main(
 
             n_files = _download_artifacts(client, run.info.run_id, run_dir, include_svals)
 
+            epochs = TRACK_EPOCHS
+
+            train_by_epoch = _values_at_steps(client, run.info.run_id, "train_loss", epochs)
+            val_by_epoch = _values_at_steps(client, run.info.run_id, "val_loss", epochs)
+
             manifest = {
                 "experiment_name": exp_name,
                 "experiment_id": exp.experiment_id,
@@ -147,6 +180,9 @@ def main(
                 "run_name": run.data.tags.get("mlflow.runName") or run.data.tags.get("run_name") or "unnamed",
                 "loss_type": run.data.params.get("loss_type"),
                 "sgt_loss_q": run.data.params.get("sgt_loss_q"),
+                "epochs": list(epochs),
+                "train_loss_at_epochs": {str(k): v for k, v in sorted(train_by_epoch.items())},
+                "val_loss_at_epochs": {str(k): v for k, v in sorted(val_by_epoch.items())},
                 "artifact_count": n_files,
                 "folder_name": run_dir.name,
             }

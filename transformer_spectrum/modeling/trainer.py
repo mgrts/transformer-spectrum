@@ -10,7 +10,7 @@ from transformer_spectrum.metrics.spectral_metrics import get_spectral_metrics
 from transformer_spectrum.metrics.training_metrics import compute_training_metrics
 from transformer_spectrum.modeling.utils import EarlyStopping
 from transformer_spectrum.modeling.visualize import plot_singular_values
-from transformer_spectrum.config import TRACKING_URI
+from transformer_spectrum.config import TRACKING_URI, TRACK_EPOCHS
 
 mlflow.set_tracking_uri(TRACKING_URI)
 
@@ -106,7 +106,7 @@ class Trainer:
         num_epochs,
         early_stopping_patience,
         device: str = "cuda",
-        track_epochs: tuple | list = (0, 1, 10, 50),
+        track_epochs: tuple | list = TRACK_EPOCHS,
     ):
         self.model = model.to(device)
         self.train_loader = train_loader

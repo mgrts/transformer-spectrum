@@ -73,7 +73,6 @@ def main(
         seed=seed,
     )
 
-    # ----- model -----
     model = get_model(
         model_type=model_type,
         in_dim=data.shape[-1],
@@ -84,10 +83,8 @@ def main(
         device=device,
     )
 
-    # ----- loss -----
     criterion = get_loss_function(loss_type, sgt_loss_lambda, sgt_loss_q, sgt_loss_sigma)
 
-    # ----- MLflow -----
     mlflow.set_tracking_uri(TRACKING_URI)
     mlflow.set_experiment(experiment_name)
 
@@ -140,7 +137,6 @@ def main(
             'es_save_top_k': es_save_top_k,
         })
 
-        # ES config + trainer
         es_cfg = ESConfig(
             popsize=es_popsize,
             sigma=es_sigma,
@@ -155,7 +151,6 @@ def main(
             track_epochs=TRACK_EPOCHS,
         )
 
-        # Use training mini-batches for the ES objective by default
         trainer = TrainerES(
             experiment_name=experiment_name,
             model=model,
@@ -171,7 +166,6 @@ def main(
         best_obj, hall = trainer.fit(generations=es_generations)
         mlflow.log_metric('best_objective', float(best_obj))
 
-        # sample preds / images using your existing helper
         try:
             log_sample_images(model, val_loader, model_path=model_save_path)
         except Exception as e:

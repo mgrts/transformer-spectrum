@@ -12,13 +12,13 @@ from transformer_spectrum.config import (
     SEED,
     SEQUENCE_LENGTH,
     TRACKING_URI,
+    TRACK_EPOCHS,
 )
 from transformer_spectrum.metrics.heavy_tail_estimation import estimate_kappa_exponent
 from transformer_spectrum.metrics.skewness_estimation import skewness, skewness_of_diff
 from transformer_spectrum.modeling.data_processing import create_dataloaders
-from transformer_spectrum.modeling.trainer import Trainer
+from transformer_spectrum.modeling.trainer import TrainerGA
 from transformer_spectrum.modeling.utils import set_seed, get_loss_function, get_model
-from transformer_spectrum.modeling.visualize import log_sample_images
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
@@ -33,29 +33,33 @@ def main(
         num_heads: int = 4,
         num_layers: int = 4,
         batch_size: int = 32,
-        num_epochs: int = 100,
-        learning_rate: float = 1e-3,
-        test_split: float = 0.1,
-        seed: int = SEED,
-        early_stopping_patience: int = 20,
-        loss_type: str = 'sgt',
+        loss_type: str = 'mae',
         sgt_loss_sigma: float = 1.0,
         sgt_loss_lambda: float = 0.0,
         sgt_loss_q: float = 2.0,
-        experiment_name: str = 'Transformer-SGT-synthetic',
+        test_split: float = 0.1,
+        seed: int = SEED,
+        experiment_name: str = 'Transformer-GA-synthetic',
+
+        # GA hyperparams
+        ga_generations: int = 100,
+        ga_popsize: int = 300,
+        ga_mutation_stdev: float = 0.1,
+        ga_crossover_eta: float = 10.0,
+        cross_over_rate: float = 0.6,
+        tournament_size: int = 3,
+        ga_eval_max_batches: int = 32,
+        init_lo: float = -0.5,
+        init_hi: float = 0.5,
 ):
     set_seed(seed)
-    device = torch.device(
-        'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
-    )
-
-    assert output_length < sequence_length, 'Output length must be less than sequence length'
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     logger.info(f'Using device: {device}')
-    logger.info('Loading data...')
 
     data = np.load(dataset_path)
     input_length = sequence_length - output_length
+    assert output_length < sequence_length, 'Output length must be less than sequence length'
 
     train_loader, val_loader = create_dataloaders(
         data=data,
@@ -77,7 +81,6 @@ def main(
     )
 
     criterion = get_loss_function(loss_type, sgt_loss_lambda, sgt_loss_q, sgt_loss_sigma)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     mlflow.set_tracking_uri(TRACKING_URI)
     mlflow.set_experiment(experiment_name)
@@ -88,63 +91,76 @@ def main(
         output_dir.mkdir(parents=True, exist_ok=True)
         model_save_path = output_dir / 'model.pt'
 
-        logger.info('Estimating skewness and heavy-tailness...')
-
+        # Dataset stats for the run
         flat_data = data.reshape(-1)
-
         skew = skewness(flat_data)
         diff_skew = skewness_of_diff(data)
-        mlflow.log_metric('skewness', skew)
-        mlflow.log_metric('skewness_of_diff', diff_skew)
-        logger.info(f'Skewness: {skew:.4f}, Skewness of Diff: {diff_skew:.4f}')
-
         _, _, kappa_val, _, _ = estimate_kappa_exponent(flat_data, n=10)
-        mlflow.log_metric('kappa', kappa_val)
-        logger.info(f'Kappa (n=10): {kappa_val:.4f}')
 
+        mlflow.log_metrics({
+                'skewness': skew,
+                'skewness_of_diff': diff_skew,
+                'kappa': kappa_val,
+        })
+
+        logger.info(f'Skewness={skew:.4f}, DiffSkew={diff_skew:.4f}, Kappa={kappa_val:.4f}')
+
+        # Log run params
         mlflow.log_params({
+            'optimizer_type': 'genetic',
             'model_type': model_type,
+            'loss_type': loss_type,
             'sgt_loss_lambda': sgt_loss_lambda,
             'sgt_loss_q': sgt_loss_q,
             'sgt_loss_sigma': sgt_loss_sigma,
-            'input_length': input_length,
-            'output_length': output_length,
             'embed_dim': embed_dim,
             'num_heads': num_heads,
             'num_layers': num_layers,
             'batch_size': batch_size,
-            'learning_rate': learning_rate,
-            'loss_type': loss_type,
-            'early_stopping_patience': early_stopping_patience,
-            'num_epochs': num_epochs,
+            'sequence_length': sequence_length,
+            'output_length': output_length,
             'test_split': test_split,
             'seed': seed,
+
+            # GA params
+            'ga_generations': ga_generations,
+            'ga_popsize': ga_popsize,
+            'ga_mutation_stdev': ga_mutation_stdev,
+            'ga_crossover_eta': ga_crossover_eta,
+            'cross_over_rate': cross_over_rate,
+            'tournament_size': tournament_size,
+            'ga_eval_max_batches': ga_eval_max_batches,
+            'init_bounds_lo': init_lo,
+            'init_bounds_hi': init_hi,
         })
 
-        trainer = Trainer(
+        init_bounds = (float(init_lo), float(init_hi)) if init_lo < init_hi else None
+
+        trainer = TrainerGA(
             experiment_name=experiment_name,
             model=model,
             train_loader=train_loader,
             val_loader=val_loader,
             criterion=criterion,
-            optimizer=optimizer,
             model_save_path=model_save_path,
-            device=device,
-            num_epochs=num_epochs,
-            early_stopping_patience=early_stopping_patience,
+            device=str(device),
+            ga_generations=ga_generations,
+            ga_popsize=ga_popsize,
+            ga_mutation_stdev=ga_mutation_stdev,
+            ga_crossover_eta=ga_crossover_eta,
+            ga_eval_max_batches=ga_eval_max_batches,
+            track_epochs=TRACK_EPOCHS,
+            cross_over_rate=cross_over_rate,
+            tournament_size=tournament_size,
+            init_bounds=init_bounds,
         )
-        best_val_loss, best_train_metrics, best_val_metrics, best_spectral_metrics = trainer.train()
 
-        mlflow.log_metrics({
-            'best_train_smape': best_train_metrics.get('smape'),
-            'best_val_smape': best_val_metrics.get('smape'),
-        })
-        for key, value in best_spectral_metrics.items():
-            mlflow.log_metric(f'best_{key}', float(value))
+        best_objective = trainer.fit()
 
-        log_sample_images(model, val_loader, model_path=model_save_path)
+        mlflow.log_metric('best_objective', best_objective)
 
-        logger.success('Training complete.')
+        logger.success('Genetic Algorithm optimization complete.')
+        logger.info(f'Model saved to: {model_save_path}')
 
 
 if __name__ == '__main__':

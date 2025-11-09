@@ -66,9 +66,9 @@ def smooth_sequence(sequence, smoothing_type, kernel_size, sigma, period):
 
 class SkewedGeneralizedT:
     def __init__(self, mu=0.0, sigma=1.0, lam=0.0, p=2.0, q=2.0):
-        assert -1 < lam < 1, "lam must be in (-1, 1)"
-        assert sigma > 0, "sigma must be positive"
-        assert p > 0 and q > 0, "p and q must be positive"
+        assert -1 < lam < 1, 'lam must be in (-1, 1)'
+        assert sigma > 0, 'sigma must be positive'
+        assert p > 0 and q > 0, 'p and q must be positive'
 
         self.mu = mu
         self.sigma = sigma
@@ -77,16 +77,16 @@ class SkewedGeneralizedT:
         self.q = q
 
         # Compute beta functions
-        B1 = beta(1.0 / p, q)
-        B2 = beta(2.0 / p, q - 1.0 / p)
-        B3 = beta(3.0 / p, q - 2.0 / p)
+        beta1 = beta(1.0 / p, q)
+        beta2 = beta(2.0 / p, q - 1.0 / p)
+        beta3 = beta(3.0 / p, q - 2.0 / p)
 
         # Compute v and m as per the provided formulas
-        self.v = q ** (-1.0 / p) / np.sqrt((1 + 3 * lam ** 2) * (B3 / B1) - 4 * lam ** 2 * (B2 / B1) ** 2)
-        self.m = lam * self.v * sigma * (2 * q ** (1.0 / p) * B2 / B1)
+        self.v = q ** (-1.0 / p) / np.sqrt((1 + 3 * lam ** 2) * (beta3 / beta1) - 4 * lam ** 2 * (beta2 / beta1) ** 2)
+        self.m = lam * self.v * sigma * (2 * q ** (1.0 / p) * beta2 / beta1)
 
         # Normalizing constant
-        self.norm_const = p / (2 * self.v * sigma * q**(1.0 / p) * B1)
+        self.norm_const = p / (2 * self.v * sigma * q**(1.0 / p) * beta1)
 
     def pdf(self, x):
         x = np.asarray(x, dtype=float)

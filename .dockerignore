@@ -1,0 +1,71 @@
+# Git files
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+.eggs
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Build artifacts
+build/
+dist/
+*.egg
+
+# Test and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/
+
+# Data artifacts (mount these as volumes instead)
+data/raw/*
+data/interim/*
+data/processed/*
+data/external/*
+
+# Model artifacts (mount these as volumes instead)
+models/
+mlruns/
+
+# Reports and figures
+reports/
+
+# Documentation build
+docs/site/
+
+# Large files
+*.npy
+*.pt
+*.pth
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.csv
+*.parquet
+
+# Logs
+*.log

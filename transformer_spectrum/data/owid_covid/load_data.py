@@ -5,7 +5,7 @@ import typer
 from loguru import logger
 from tqdm import tqdm
 
-from transformer_spectrum.config import DATA_URL, EXTERNAL_DATA_DIR
+from transformer_spectrum.settings import DATA_URL, EXTERNAL_DATA_DIR
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 

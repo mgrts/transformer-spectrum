@@ -6,10 +6,10 @@ import seaborn as sns
 import typer
 from loguru import logger
 
-from transformer_spectrum.config import FIGURES_DIR, PROCESSED_DATA_DIR
+from transformer_spectrum.settings import FIGURES_DIR, PROCESSED_DATA_DIR
 from transformer_spectrum.data.rvr_us.dataset import main as create_rvr_dataset_main
 from transformer_spectrum.data.synthetic.generate_data import main as generate_data_main
-from transformer_spectrum.config import SYNTHETIC_DATA_CONFIGS
+from transformer_spectrum.settings import SYNTHETIC_DATA_CONFIGS
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 

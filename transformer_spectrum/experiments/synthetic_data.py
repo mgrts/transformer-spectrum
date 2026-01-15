@@ -2,7 +2,7 @@ import random
 
 import typer
 
-from transformer_spectrum.config import N_RUNS, PROCESSED_DATA_DIR, SYNTHETIC_DATA_CONFIGS, TRAINING_CONFIGS
+from transformer_spectrum.settings import N_RUNS, PROCESSED_DATA_DIR, SYNTHETIC_DATA_CONFIGS, TRAINING_CONFIGS
 from transformer_spectrum.data.synthetic.generate_data import main as generate_data_main
 from transformer_spectrum.modeling.train import main as train_main
 

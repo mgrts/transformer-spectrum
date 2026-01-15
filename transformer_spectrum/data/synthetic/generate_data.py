@@ -6,7 +6,7 @@ from loguru import logger
 from scipy.special import beta
 from scipy.stats import t
 
-from transformer_spectrum.config import PROCESSED_DATA_DIR, SEED, SEQUENCE_LENGTH
+from transformer_spectrum.settings import PROCESSED_DATA_DIR, SEED, SEQUENCE_LENGTH
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 

@@ -2,7 +2,7 @@ import random
 
 import typer
 
-from transformer_spectrum.config import (N_RUNS, PROCESSED_DATA_DIR, TRAINING_CONFIGS)
+from transformer_spectrum.settings import (N_RUNS, PROCESSED_DATA_DIR, TRAINING_CONFIGS)
 from transformer_spectrum.modeling.train import main as train_main
 
 app = typer.Typer(pretty_exceptions_show_locals=False)

@@ -9,7 +9,7 @@ import typer
 from loguru import logger
 from typing import Iterable, Dict, Optional
 
-from transformer_spectrum.config import TRACKING_URI, SYNTHETIC_DATA_CONFIGS, TRACK_EPOCHS
+from transformer_spectrum.settings import TRACKING_URI, SYNTHETIC_DATA_CONFIGS, TRACK_EPOCHS
 
 
 app = typer.Typer(pretty_exceptions_show_locals=False)

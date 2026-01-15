@@ -15,7 +15,7 @@ from evotorch.operators import SimulatedBinaryCrossOver, GaussianMutation
 from loguru import logger
 from torch.utils.data import DataLoader
 
-from transformer_spectrum.config import TRACKING_URI, TRACK_EPOCHS
+from transformer_spectrum.settings import TRACKING_URI, TRACK_EPOCHS
 from transformer_spectrum.metrics.spectral_metrics import get_spectral_metrics
 from transformer_spectrum.metrics.training_metrics import compute_training_metrics
 from transformer_spectrum.modeling.utils import EarlyStopping

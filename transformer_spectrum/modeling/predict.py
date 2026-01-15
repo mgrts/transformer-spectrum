@@ -4,7 +4,7 @@ import typer
 from loguru import logger
 from tqdm import tqdm
 
-from transformer_spectrum.config import MODELS_DIR, PROCESSED_DATA_DIR
+from transformer_spectrum.settings import MODELS_DIR, PROCESSED_DATA_DIR
 
 app = typer.Typer()
 

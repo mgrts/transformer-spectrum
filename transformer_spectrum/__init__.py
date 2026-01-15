@@ -1,1 +1,1 @@
-from transformer_spectrum import config  # noqa: F401
+from transformer_spectrum import settings  # noqa: F401

@@ -1,23 +1,44 @@
+# Code quality
 black
 flake8
 isort
+ruff
+mypy
+
+# Logging and CLI
 loguru
+typer
+tqdm
+
+# Documentation
 mkdocs
+
+# Environment
 pip
 python-dotenv
-tqdm
-typer
+
+# Development
+pre-commit
 -e .
 
+# Data science
 matplotlib
 seaborn
-mlflow
-pre-commit
-python-dotenv
-tqdm
 numpy==2.3.2
 pandas==2.3.1
 scikit-learn==1.7.1
 scipy==1.16.1
+
+# ML
 torch==2.7.1
+mlflow
 evotorch==0.6.1
+
+# Configuration
+pydantic>=2.0
+pyyaml
+
+# Testing
+pytest>=7.0
+pytest-cov
+

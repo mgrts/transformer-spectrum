@@ -2,7 +2,7 @@ import random
 
 import typer
 
-from transformer_spectrum.config import (N_RUNS, PROCESSED_DATA_DIR,
+from transformer_spectrum.settings import (N_RUNS, PROCESSED_DATA_DIR,
                                      TRAINING_CONFIGS)
 from transformer_spectrum.data.rvr_us.dataset import main as create_dataset_main
 from transformer_spectrum.modeling.train import main as train_main

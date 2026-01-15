@@ -6,7 +6,7 @@ import torch
 import typer
 from loguru import logger
 
-from transformer_spectrum.config import (
+from transformer_spectrum.settings import (
     MODELS_DIR,
     PROCESSED_DATA_DIR,
     SEED,

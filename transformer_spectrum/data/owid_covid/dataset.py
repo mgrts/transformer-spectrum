@@ -6,7 +6,7 @@ import typer
 from loguru import logger
 from sklearn.preprocessing import StandardScaler
 
-from transformer_spectrum.config import (EXTERNAL_DATA_DIR, PROCESSED_DATA_DIR,
+from transformer_spectrum.settings import (EXTERNAL_DATA_DIR, PROCESSED_DATA_DIR,
                                          SEQUENCE_LENGTH)
 from transformer_spectrum.data.utils import slice_array_to_chunks
 
